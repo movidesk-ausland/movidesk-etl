@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Movidesk BI</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #161920;
+    --surface2: #1e2230;
+    --border: #2a2f3d;
+    --accent: #4f8ef7;
+    --accent2: #7c5cbf;
+    --green: #2dd4a0;
+    --amber: #f5a623;
+    --red: #f05252;
+    --text: #e8eaf0;
+    --muted: #7a80a0;
+    --font: 'DM Sans', sans-serif;
+    --mono: 'DM Mono', monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+
+  header {
+    padding: 1.25rem 2rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+  .logo-text { font-size: 15px; font-weight: 600; letter-spacing: 0.02em; }
+  .logo-sub { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .last-update { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+  .btn { padding: 7px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; font-family: var(--font); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #3a7af5; }
+  .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-outline:hover { background: var(--surface2); }
+
+  .filters {
+    padding: 1rem 2rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-label { font-size: 12px; color: var(--muted); font-family: var(--mono); margin-right: 4px; }
+  select, input[type=date] {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: var(--font);
+    cursor: pointer;
+    outline: none;
+  }
+  select:hover, input[type=date]:hover { border-color: var(--accent); }
+  .filter-group { display: flex; align-items: center; gap: 6px; }
+
+  main { padding: 1.5rem 2rem; max-width: 1400px; margin: 0 auto; }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 1.5rem; }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+  .kpi-card:hover { border-color: var(--accent); }
+  .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .kpi-card.blue::before { background: var(--accent); }
+  .kpi-card.green::before { background: var(--green); }
+  .kpi-card.amber::before { background: var(--amber); }
+  .kpi-card.purple::before { background: var(--accent2); }
+  .kpi-card.red::before { background: var(--red); }
+  .kpi-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; font-family: var(--mono); }
+  .kpi-value { font-size: 28px; font-weight: 600; line-height: 1; }
+  .kpi-sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .charts-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+  }
+  .chart-card.full { grid-column: 1 / -1; }
+  .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  .chart-title { font-size: 13px; font-weight: 500; color: var(--text); }
+  .chart-subtitle { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
+  .export-btn { font-size: 11px; color: var(--accent); cursor: pointer; background: none; border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font-family: var(--font); transition: all .15s; }
+  .export-btn:hover { background: var(--surface2); }
+
+  .table-wrap { overflow-x: auto; margin-top: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 8px 12px; font-size: 11px; color: var(--muted); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--border); font-weight: 400; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+  tr:hover td { background: var(--surface2); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-family: var(--mono); }
+  .badge-green { background: rgba(45,212,160,0.1); color: var(--green); }
+  .badge-amber { background: rgba(245,166,35,0.1); color: var(--amber); }
+  .badge-blue { background: rgba(79,142,247,0.1); color: var(--accent); }
+  .badge-red { background: rgba(240,82,82,0.1); color: var(--red); }
+
+  .loading { display: flex; align-items: center; justify-content: center; height: 200px; color: var(--muted); font-family: var(--mono); font-size: 13px; gap: 8px; }
+  .spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty { text-align: center; padding: 3rem; color: var(--muted); font-size: 13px; }
+
+  @media (max-width: 768px) {
+    header { padding: 1rem; }
+    main { padding: 1rem; }
+    .charts-grid, .charts-grid.three { grid-template-columns: 1fr; }
+    .filters { padding: 0.75rem 1rem; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    <div>
+      <div class="logo-text">Movidesk BI</div>
+      <div class="logo-sub">dashboard de tickets</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="last-update" id="last-update">carregando...</span>
+    <button class="btn btn-outline" onclick="exportarTodos()">Exportar CSV</button>
+    <button class="btn btn-primary" onclick="carregarDados()">Atualizar</button>
+  </div>
+</header>
+
+<div class="filters">
+  <div class="filter-group">
+    <span class="filter-label">de</span>
+    <input type="date" id="f-inicio" onchange="aplicarFiltros()">
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">até</span>
+    <input type="date" id="f-fim" onchange="aplicarFiltros()">
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">status</span>
+    <select id="f-status" onchange="aplicarFiltros()">
+      <option value="">Todos</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">responsável</span>
+    <select id="f-owner" onchange="aplicarFiltros()">
+      <option value="">Todos</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">origem</span>
+    <select id="f-origem" onchange="aplicarFiltros()">
+      <option value="">Todas</option>
+    </select>
+  </div>
+  <button class="btn btn-outline" onclick="limparFiltros()" style="margin-left:auto">Limpar filtros</button>
+</div>
+
+<main>
+  <div class="kpi-grid">
+    <div class="kpi-card blue">
+      <div class="kpi-label">Total de tickets</div>
+      <div class="kpi-value" id="kpi-total">—</div>
+      <div class="kpi-sub">no período filtrado</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Fechados</div>
+      <div class="kpi-value" id="kpi-fechados">—</div>
+      <div class="kpi-sub" id="kpi-fechados-pct">—</div>
+    </div>
+    <div class="kpi-card amber">
+      <div class="kpi-label">Em atendimento</div>
+      <div class="kpi-value" id="kpi-abertos">—</div>
+      <div class="kpi-sub">tickets ativos</div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="kpi-label">Responsáveis</div>
+      <div class="kpi-value" id="kpi-owners">—</div>
+      <div class="kpi-sub">agentes ativos</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">Sem atendimento</div>
+      <div class="kpi-value" id="kpi-sem-atend">—</div>
+      <div class="kpi-sub">sem início registrado</div>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Tickets por status</div>
+          <div class="chart-subtitle">distribuição atual</div>
+        </div>
+        <button class="export-btn" onclick="exportarGrafico('status')">↓ CSV</button>
+      </div>
+      <canvas id="chart-status" height="220"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Canal de origem</div>
+          <div class="chart-subtitle">como os tickets chegam</div>
+        </div>
+        <button class="export-btn" onclick="exportarGrafico('origem')">↓ CSV</button>
+      </div>
+      <canvas id="chart-origem" height="220"></canvas>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-card full">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Volume mensal de tickets</div>
+          <div class="chart-subtitle">criados por mês</div>
+        </div>
+        <button class="export-btn" onclick="exportarGrafico('mensal')">↓ CSV</button>
+      </div>
+      <canvas id="chart-mensal" height="120"></canvas>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-card full">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Top responsáveis</div>
+          <div class="chart-subtitle">por volume de tickets</div>
+        </div>
+        <button class="export-btn" onclick="exportarGrafico('owners')">↓ CSV</button>
+      </div>
+      <canvas id="chart-owners" height="120"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card" style="margin-bottom:16px">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">Tickets recentes</div>
+        <div class="chart-subtitle" id="tabela-sub">últimos registros</div>
+      </div>
+      <button class="export-btn" onclick="exportarTabela()">↓ CSV</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Serviço</th>
+            <th>Responsável</th>
+            <th>Status</th>
+            <th>Origem</th>
+            <th>Criado em</th>
+          </tr>
+        </thead>
+        <tbody id="tabela-body">
+          <tr><td colspan="6"><div class="loading"><div class="spinner"></div> carregando dados...</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+const SUPABASE_URL = 'https://uraxoruvcyggxubdpbar.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVyYXhvcnV2Y3lnZ3h1YmRwYmFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNzg0OTIsImV4cCI6MjA4OTg1NDQ5Mn0.I1H1IUMZ6nnGgMPdHqjlZjypelXh85A2jTPYdLaT4J0';
+
+let todosRegistros = [];
+let registrosFiltrados = [];
+let charts = {};
+
+const CORES = ['#4f8ef7','#2dd4a0','#f5a623','#7c5cbf','#f05252','#38bdf8','#a78bfa','#fb923c','#34d399','#e879f9'];
+
+async function fetchPagina(offset, limite = 1000) {
+  const url = `${SUPABASE_URL}/rest/v1/tickets?select=*&order=created_date.desc&limit=${limite}&offset=${offset}`;
+  const res = await fetch(url, {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'count=exact'
+    }
+  });
+  const total = parseInt(res.headers.get('content-range')?.split('/')[1] || '0');
+  const data = await res.json();
+  return { data, total };
+}
+
+async function carregarDados() {
+  document.getElementById('last-update').textContent = 'carregando...';
+  try {
+    let todos = [];
+    let offset = 0;
+    const limite = 1000;
+    let totalGeral = null;
+
+    while (true) {
+      const { data, total } = await fetchPagina(offset, limite);
+      if (totalGeral === null) totalGeral = total;
+      todos = todos.concat(data);
+      document.getElementById('last-update').textContent = `carregando... ${todos.length}/${totalGeral}`;
+      if (data.length < limite) break;
+      offset += limite;
+    }
+
+    todosRegistros = todos;
+    popularFiltros(todos);
+    aplicarFiltros();
+    const agora = new Date().toLocaleString('pt-BR');
+    document.getElementById('last-update').textContent = `atualizado ${agora} · ${todos.length.toLocaleString('pt-BR')} registros`;
+  } catch(e) {
+    document.getElementById('last-update').textContent = 'erro ao carregar';
+    console.error(e);
+  }
+}
+
+function popularFiltros(data) {
+  const status = [...new Set(data.map(d => d.status).filter(Boolean))].sort();
+  const owners = [...new Set(data.map(d => d.owner).filter(Boolean))].sort();
+  const origens = [...new Set(data.map(d => d.origin_desc).filter(Boolean))].sort();
+
+  preencherSelect('f-status', status);
+  preencherSelect('f-owner', owners);
+  preencherSelect('f-origem', origens);
+}
+
+function preencherSelect(id, valores) {
+  const sel = document.getElementById(id);
+  const atual = sel.value;
+  while (sel.options.length > 1) sel.remove(1);
+  valores.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v; opt.textContent = v;
+    sel.appendChild(opt);
+  });
+  if (atual) sel.value = atual;
+}
+
+function aplicarFiltros() {
+  const inicio = document.getElementById('f-inicio').value;
+  const fim = document.getElementById('f-fim').value;
+  const status = document.getElementById('f-status').value;
+  const owner = document.getElementById('f-owner').value;
+  const origem = document.getElementById('f-origem').value;
+
+  registrosFiltrados = todosRegistros.filter(d => {
+    if (inicio && d.created_date && d.created_date < inicio) return false;
+    if (fim && d.created_date && d.created_date > fim + ' 23:59:59') return false;
+    if (status && d.status !== status) return false;
+    if (owner && d.owner !== owner) return false;
+    if (origem && d.origin_desc !== origem) return false;
+    return true;
+  });
+
+  atualizarKPIs();
+  atualizarGraficos();
+  atualizarTabela();
+}
+
+function limparFiltros() {
+  document.getElementById('f-inicio').value = '';
+  document.getElementById('f-fim').value = '';
+  document.getElementById('f-status').value = '';
+  document.getElementById('f-owner').value = '';
+  document.getElementById('f-origem').value = '';
+  aplicarFiltros();
+}
+
+function atualizarKPIs() {
+  const total = registrosFiltrados.length;
+  const fechados = registrosFiltrados.filter(d => d.status === 'Fechado').length;
+  const ativos = registrosFiltrados.filter(d => d.status !== 'Fechado').length;
+  const owners = new Set(registrosFiltrados.map(d => d.owner).filter(Boolean)).size;
+  const semAtend = registrosFiltrados.filter(d => !d.inicio_atend).length;
+  const pct = total > 0 ? ((fechados / total) * 100).toFixed(1) : 0;
+
+  document.getElementById('kpi-total').textContent = total.toLocaleString('pt-BR');
+  document.getElementById('kpi-fechados').textContent = fechados.toLocaleString('pt-BR');
+  document.getElementById('kpi-fechados-pct').textContent = `${pct}% do total`;
+  document.getElementById('kpi-abertos').textContent = ativos.toLocaleString('pt-BR');
+  document.getElementById('kpi-owners').textContent = owners;
+  document.getElementById('kpi-sem-atend').textContent = semAtend.toLocaleString('pt-BR');
+}
+
+function contarPor(campo) {
+  const counts = {};
+  registrosFiltrados.forEach(d => {
+    const v = d[campo] || 'Sem info';
+    counts[v] = (counts[v] || 0) + 1;
+  });
+  return Object.entries(counts).sort((a,b) => b[1]-a[1]);
+}
+
+function atualizarGraficos() {
+  const statusData = contarPor('status');
+  const origemData = contarPor('origin_desc');
+
+  // Volume mensal
+  const mensal = {};
+  registrosFiltrados.forEach(d => {
+    if (!d.created_date) return;
+    const mes = d.created_date.substring(0, 7);
+    mensal[mes] = (mensal[mes] || 0) + 1;
+  });
+  const mensalOrdenado = Object.entries(mensal).sort((a,b) => a[0].localeCompare(b[0]));
+
+  // Top 10 owners
+  const ownerData = contarPor('owner').slice(0, 10);
+
+  renderDoughnut('chart-status', statusData);
+  renderBar('chart-origem', origemData, true);
+  renderLine('chart-mensal', mensalOrdenado);
+  renderBar('chart-owners', ownerData, false);
+}
+
+function renderDoughnut(id, dados) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id).getContext('2d');
+  charts[id] = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: dados.map(d => d[0]),
+      datasets: [{ data: dados.map(d => d[1]), backgroundColor: CORES, borderWidth: 0, hoverOffset: 4 }]
+    },
+    options: {
+      plugins: { legend: { position: 'right', labels: { color: '#7a80a0', font: { size: 12 }, boxWidth: 12, padding: 12 } } },
+      cutout: '65%'
+    }
+  });
+}
+
+function renderBar(id, dados, horizontal) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id).getContext('2d');
+  charts[id] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: dados.map(d => d[0]),
+      datasets: [{ data: dados.map(d => d[1]), backgroundColor: CORES, borderRadius: 6, borderSkipped: false }]
+    },
+    options: {
+      indexAxis: horizontal ? 'y' : 'x',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#7a80a0', font: { size: 11 } }, grid: { color: '#2a2f3d' } },
+        y: { ticks: { color: '#7a80a0', font: { size: 11 } }, grid: { color: '#2a2f3d' } }
+      }
+    }
+  });
+}
+
+function renderLine(id, dados) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id).getContext('2d');
+  charts[id] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dados.map(d => d[0]),
+      datasets: [{
+        data: dados.map(d => d[1]),
+        borderColor: '#4f8ef7',
+        backgroundColor: 'rgba(79,142,247,0.08)',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 3,
+        pointBackgroundColor: '#4f8ef7'
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#7a80a0', font: { size: 11 } }, grid: { color: '#2a2f3d' } },
+        y: { ticks: { color: '#7a80a0', font: { size: 11 } }, grid: { color: '#2a2f3d' } }
+      }
+    }
+  });
+}
+
+function atualizarTabela() {
+  const tbody = document.getElementById('tabela-body');
+  const ultimos = registrosFiltrados.slice(0, 100);
+  document.getElementById('tabela-sub').textContent = `${registrosFiltrados.length.toLocaleString('pt-BR')} registros filtrados`;
+
+  if (ultimos.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty">Nenhum registro encontrado</div></td></tr>';
+    return;
+  }
+
+  function badgeStatus(s) {
+    if (!s) return '<span class="badge">—</span>';
+    if (s === 'Fechado') return `<span class="badge badge-green">${s}</span>`;
+    if (s === 'Cancelado') return `<span class="badge badge-red">${s}</span>`;
+    return `<span class="badge badge-amber">${s}</span>`;
+  }
+
+  tbody.innerHTML = ultimos.map(d => `
+    <tr>
+      <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">#${d.id}</td>
+      <td>${d.service_full || '—'}</td>
+      <td>${d.owner || '—'}</td>
+      <td>${badgeStatus(d.status)}</td>
+      <td style="font-size:12px;color:var(--muted)">${d.origin_desc || '—'}</td>
+      <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">${d.created_date ? d.created_date.substring(0,10) : '—'}</td>
+    </tr>
+  `).join('');
+}
+
+function toCSV(dados, colunas) {
+  const header = colunas.join(';');
+  const rows = dados.map(d => colunas.map(c => `"${(d[c] || '').toString().replace(/"/g,'""')}"`).join(';'));
+  return [header, ...rows].join('\n');
+}
+
+function downloadCSV(conteudo, nome) {
+  const blob = new Blob(['\uFEFF' + conteudo], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = nome;
+  a.click();
+}
+
+function exportarTabela() {
+  const csv = toCSV(registrosFiltrados, ['id','service_full','owner','owner_team','status','base_status','origin_desc','created_date','last_action','inicio_atend','client_name']);
+  downloadCSV(csv, `tickets_${new Date().toISOString().slice(0,10)}.csv`);
+}
+
+function exportarTodos() { exportarTabela(); }
+
+function exportarGrafico(tipo) {
+  let dados, nome;
+  if (tipo === 'status') {
+    dados = contarPor('status').map(([status, total]) => ({ status, total }));
+    nome = 'tickets_por_status.csv';
+    downloadCSV(dados.map(d => `${d.status};${d.total}`).join('\n'), nome);
+  } else if (tipo === 'origem') {
+    dados = contarPor('origin_desc').map(([origem, total]) => ({ origem, total }));
+    nome = 'tickets_por_origem.csv';
+    downloadCSV(dados.map(d => `${d.origem};${d.total}`).join('\n'), nome);
+  } else if (tipo === 'mensal') {
+    const mensal = {};
+    registrosFiltrados.forEach(d => { if (!d.created_date) return; const m = d.created_date.substring(0,7); mensal[m]=(mensal[m]||0)+1; });
+    downloadCSV(Object.entries(mensal).sort().map(([m,t])=>`${m};${t}`).join('\n'), 'tickets_mensal.csv');
+  } else if (tipo === 'owners') {
+    dados = contarPor('owner').map(([owner, total]) => ({ owner, total }));
+    downloadCSV(dados.map(d=>`${d.owner};${d.total}`).join('\n'), 'tickets_por_responsavel.csv');
+  }
+}
+
+// Inicializar com últimos 90 dias
+const hoje = new Date();
+const noventa = new Date(hoje); noventa.setDate(hoje.getDate() - 90);
+document.getElementById('f-fim').value = hoje.toISOString().slice(0,10);
+document.getElementById('f-inicio').value = noventa.toISOString().slice(0,10);
+
+carregarDados();
+</script>
+</body>
+</html>
