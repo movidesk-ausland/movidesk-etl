@@ -1,6 +1,8 @@
 import requests
 import pandas as pd
 import os
+import json
+import numpy as np
 from supabase import create_client
 
 # ============================================================
@@ -19,14 +21,14 @@ def fetch_data_from_api(url, params):
     page = 0
 
     while True:
-        print(f"Buscando dados da página {page + 1}...")
+        print(f"Buscando dados da pagina {page + 1}...")
         params["$skip"] = page * params["$top"]
         response = requests.get(url, params=params)
 
         if response.status_code == 200:
             data = response.json()
             if not data:
-                print("Todas as páginas foram carregadas.")
+                print("Todas as paginas foram carregadas.")
                 break
             all_data.extend(data)
             page += 1
@@ -73,7 +75,7 @@ if 'clients' in df.columns:
     df = df_exploded.drop(columns=['clients'], errors='ignore').reset_index(drop=True)
     df = pd.concat([df, df_clients.reset_index(drop=True)], axis=1)
 else:
-    print("A coluna 'clients' não está presente no DataFrame.")
+    print("A coluna 'clients' nao esta presente no DataFrame.")
 
 def flatten_actions(ticket):
     flat_ticket = ticket.copy()
@@ -113,7 +115,7 @@ origin_mapping = {
     5: "Chat (online)",
     6: "Mensagem offline",
     7: "Email enviado pelo sistema",
-    13: "Ligação Recebida",
+    13: "Ligacao Recebida",
     16: "DropoutCall",
     25: "WhatsApp Ativo",
 }
@@ -141,27 +143,14 @@ colunas = [
     "category", "origin", "origin_desc", "client_name", "inicio_atend"
 ]
 
-# Manter apenas colunas que existem no df
 colunas_existentes = [c for c in colunas if c in df.columns]
 df_final = df[colunas_existentes].copy()
-
-# Converter id para inteiro
 df_final['id'] = df_final['id'].astype(int)
 
-# Substituir NaN, None e Infinity por None (compatível com JSON)
-import math
-
-def limpar_valor(v):
-    if v is None:
-        return None
-    if isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
-        return None
-    return v
-
-records = [
-    {k: limpar_valor(v) for k, v in row.items()}
-    for row in df_final.to_dict(orient="records")
-]
+# Eliminar NaN e Infinity convertendo via JSON
+df_final = df_final.replace([np.inf, -np.inf], None)
+df_final = df_final.where(df_final.notna(), None)
+records = json.loads(df_final.to_json(orient="records", force_ascii=False))
 
 print(f"\nTotal de registros a enviar: {len(records)}")
 
