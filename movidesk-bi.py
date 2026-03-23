@@ -143,12 +143,25 @@ colunas = [
 
 # Manter apenas colunas que existem no df
 colunas_existentes = [c for c in colunas if c in df.columns]
-df_final = df[colunas_existentes].where(df[colunas_existentes].notna(), None)
+df_final = df[colunas_existentes].copy()
 
 # Converter id para inteiro
 df_final['id'] = df_final['id'].astype(int)
 
-records = df_final.to_dict(orient="records")
+# Substituir NaN, None e Infinity por None (compatível com JSON)
+import math
+
+def limpar_valor(v):
+    if v is None:
+        return None
+    if isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
+        return None
+    return v
+
+records = [
+    {k: limpar_valor(v) for k, v in row.items()}
+    for row in df_final.to_dict(orient="records")
+]
 
 print(f"\nTotal de registros a enviar: {len(records)}")
 
