@@ -44,7 +44,7 @@ url_2 = "https://api.movidesk.com/public/v1/tickets"
 
 params_1 = {
     "token": "a6ad3ac4-e949-4f3b-8c76-9fe84cbcee2f",
-    "$select": "id,serviceFull,createdDate,lastActionDate,owner,ownerTeam,baseStatus,status,category,clients,origin,actions",
+    "$select": "id,subject,serviceFull,createdDate,lastActionDate,owner,ownerTeam,baseStatus,status,category,clients,origin,actions",
     "$expand": "actions($select=origin,createdDate),clients($select=businessName;$expand=organization($select=businessName)),owner($select=businessName)",
     "$filter": "baseStatus ne 'Canceled' and createdDate gt 2021-09-01T00:00:00.00z",
     "$top": 1000,
@@ -138,7 +138,7 @@ df = df.rename(columns={
 })
 
 colunas = [
-    "id", "service_full", "created_date", "last_action",
+    "id", "subject", "service_full", "created_date", "last_action",
     "owner", "owner_team", "base_status", "status",
     "category", "origin", "origin_desc", "client_name", "inicio_atend"
 ]
