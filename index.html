@@ -180,6 +180,12 @@
       <option value="">Todas</option>
     </select>
   </div>
+  <div class="filter-group">
+    <span class="filter-label">cliente</span>
+    <select id="f-cliente" onchange="aplicarFiltros()">
+      <option value="">Todos</option>
+    </select>
+  </div>
   <button class="btn btn-outline" onclick="limparFiltros()" style="margin-left:auto">Limpar filtros</button>
 </div>
 
@@ -346,10 +352,12 @@ function popularFiltros(data) {
   const status = [...new Set(data.map(d => d.status).filter(Boolean))].sort();
   const owners = [...new Set(data.map(d => d.owner).filter(Boolean))].sort();
   const origens = [...new Set(data.map(d => d.origin_desc).filter(Boolean))].sort();
+  const clientes = [...new Set(data.map(d => d.client_name).filter(Boolean))].sort();
 
   preencherSelect('f-status', status);
   preencherSelect('f-owner', owners);
   preencherSelect('f-origem', origens);
+  preencherSelect('f-cliente', clientes);
 }
 
 function preencherSelect(id, valores) {
@@ -370,6 +378,7 @@ function aplicarFiltros() {
   const status = document.getElementById('f-status').value;
   const owner = document.getElementById('f-owner').value;
   const origem = document.getElementById('f-origem').value;
+  const cliente = document.getElementById('f-cliente').value;
 
   registrosFiltrados = todosRegistros.filter(d => {
     if (inicio && d.created_date && d.created_date < inicio) return false;
@@ -377,6 +386,7 @@ function aplicarFiltros() {
     if (status && d.status !== status) return false;
     if (owner && d.owner !== owner) return false;
     if (origem && d.origin_desc !== origem) return false;
+    if (cliente && d.client_name !== cliente) return false;
     return true;
   });
 
@@ -391,6 +401,7 @@ function limparFiltros() {
   document.getElementById('f-status').value = '';
   document.getElementById('f-owner').value = '';
   document.getElementById('f-origem').value = '';
+  document.getElementById('f-cliente').value = '';
   aplicarFiltros();
 }
 
@@ -548,7 +559,7 @@ function downloadCSV(conteudo, nome) {
 }
 
 function exportarTabela() {
-  const csv = toCSV(registrosFiltrados, ['id','subject','service_full','owner','owner_team','status','base_status','origin_desc','created_date','last_action','inicio_atend','client_name']);
+  const csv = toCSV(registrosFiltrados, ['id','subject','tags','service_full','owner','owner_team','status','base_status','origin_desc','created_date','last_action','inicio_atend','client_name']);
   downloadCSV(csv, `tickets_${new Date().toISOString().slice(0,10)}.csv`);
 }
 
